@@ -1,0 +1,67 @@
+version: "3.8"
+services:
+  app:
+    build:
+      args:
+        user: quangnd
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    image: skp
+    container_name: skp-app
+    restart: unless-stopped
+    working_dir: /var/www/example-react
+    volumes:
+      - ./:/var/www/example-react
+    networks:
+      - skp
+
+  db:
+    image: mysql:5.7
+    container_name: skp-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - .docker/sql:/docker-entrypoint-initdb.d
+    networks:
+      - skp
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - ${ADMINER_PORT}:80
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      - skp
+
+
+
+  nginx:
+    image: nginx:alpine
+    container_name: skp-nginx
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./:/var/www/example-react
+      - .docker/nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - skp
+
+  npm:  
+    image: node:18-alpine
+    working_dir: /var/www/example-react
+    # ports:
+    #   - 3000:3000
+    volumes: 
+      - ./:/var/www/example-react
+networks:
+  skp:
+    driver: bridge
